@@ -1,0 +1,12 @@
+# Local config files with real bucket names, paths, credentials, etc.
+config.ps1
+**/config.ps1
+
+# Downloaded files output directories
+batch-download/output/
+batch-upload/output/
+
+# AWS credential files if accidentally placed here
+.env
+*.env
+credentials
