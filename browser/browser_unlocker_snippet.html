@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Browser Unlocker Snippet</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --accent: #7a9ab8;
+    --bg: #ffffff;
+    --bg2: #f5f3ee;
+    --border: rgba(0,0,0,0.12);
+    --text: #1a1a1a;
+    --muted: #6b6b6b;
+    --green: #1D9E75;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --mono: 'Courier New', Courier, monospace;
+    --sans: system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --bg2: #2a2a2c;
+      --border: rgba(255,255,255,0.12);
+      --text: #f0ede8;
+      --muted: #9a9a9a;
+    }
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    padding: 2rem 1.5rem;
+    max-width: 760px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+  h1 { font-size: 18px; font-weight: 500; margin-bottom: 0.25rem; }
+  .subtitle { font-size: 13px; color: var(--muted); margin-bottom: 1.5rem; }
+  .tab-row { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .tab {
+    padding: 6px 14px;
+    border-radius: var(--radius-md);
+    border: 0.5px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: all 0.15s;
+  }
+  .tab.active { background: var(--bg2); color: var(--text); border-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .code-wrap { position: relative; }
+  .code-block {
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--text);
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 4px 12px;
+    border-radius: var(--radius-md);
+    border: 0.5px solid var(--border);
+    background: var(--bg);
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { color: var(--text); border-color: var(--accent); }
+  .copy-btn.copied { color: var(--green); border-color: var(--green); }
+  .desc { font-size: 13px; color: var(--muted); margin-top: 0.75rem; line-height: 1.6; }
+  code { font-family: var(--mono); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1>Browser Unlocker Snippet</h1>
+<p class="subtitle">Paste into browser console (F12 → Console) to restore copy, paste, select, keyboard shortcuts, and right-click on sites that block them.</p>
+
+<div class="tab-row">
+  <button class="tab active" onclick="switchTab('full', this)">Full unlock</button>
+  <button class="tab" onclick="switchTab('select', this)">Text select only</button>
+  <button class="tab" onclick="switchTab('keys', this)">Keyboard only</button>
+  <button class="tab" onclick="switchTab('ctx', this)">Right-click only</button>
+</div>
+
+<div id="panel-full" class="panel active">
+  <div class="label">Paste into browser console (F12 → Console)</div>
+  <div class="code-wrap">
+    <div class="code-block" id="code-full">(function() {
+  // Remove all event blockers
+  const events = [
+    'copy','cut','paste','keydown','keyup','keypress',
+    'contextmenu','selectstart','dragstart','mousedown',
+    'mouseup','click','dblclick'
+  ];
+  events.forEach(e => {
+    document.addEventListener(e, ev => ev.stopImmediatePropagation(), true);
+  });
+
+  // Re-enable text selection
+  const s = document.createElement('style');
+  s.id = '__unlocker__';
+  s.textContent = `
+    * {
+      user-select: auto !important;
+      -webkit-user-select: auto !important;
+      pointer-events: auto !important;
+    }
+  `;
+  document.head.appendChild(s);
+
+  // Clear inline oncopy / oncontextmenu / etc.
+  document.oncopy = null;
+  document.oncut = null;
+  document.onpaste = null;
+  document.onkeydown = null;
+  document.onkeyup = null;
+  document.oncontextmenu = null;
+  document.onselectstart = null;
+  document.ondragstart = null;
+
+  // Also clear on body and html
+  [document.body, document.documentElement].forEach(el => {
+    if (!el) return;
+    el.oncopy = null;
+    el.oncut = null;
+    el.onpaste = null;
+    el.onkeydown = null;
+    el.onkeyup = null;
+    el.oncontextmenu = null;
+    el.onselectstart = null;
+    el.ondragstart = null;
+  });
+
+  console.log('%c[Unlocker] Done — copy, paste, select, right-click, devtools all restored.', 'color: #1D9E75; font-weight: bold;');
+})();</div>
+    <button class="copy-btn" onclick="copyCode('code-full', this)">Copy</button>
+  </div>
+  <p class="desc">Intercepts all blocking event listeners at the capture phase, re-enables CSS text selection, and clears inline <code>on*</code> handlers on document/body/html. Works on most sites.</p>
+</div>
+
+<div id="panel-select" class="panel">
+  <div class="label">Paste into browser console (F12 → Console)</div>
+  <div class="code-wrap">
+    <div class="code-block" id="code-select">(function() {
+  ['selectstart','dragstart'].forEach(e => {
+    document.addEventListener(e, ev => ev.stopImmediatePropagation(), true);
+  });
+  document.onselectstart = null;
+  document.ondragstart = null;
+  const s = document.createElement('style');
+  s.id = '__unlocker_select__';
+  s.textContent = '* { user-select: auto !important; -webkit-user-select: auto !important; }';
+  document.head.appendChild(s);
+  console.log('%c[Unlocker] Text selection restored.', 'color: #1D9E75;');
+})();</div>
+    <button class="copy-btn" onclick="copyCode('code-select', this)">Copy</button>
+  </div>
+</div>
+
+<div id="panel-keys" class="panel">
+  <div class="label">Paste into browser console (F12 → Console)</div>
+  <div class="code-wrap">
+    <div class="code-block" id="code-keys">(function() {
+  ['keydown','keyup','keypress'].forEach(e => {
+    document.addEventListener(e, ev => ev.stopImmediatePropagation(), true);
+  });
+  document.onkeydown = null;
+  document.onkeyup = null;
+  document.onkeypress = null;
+  if (document.body) {
+    document.body.onkeydown = null;
+    document.body.onkeyup = null;
+  }
+  console.log('%c[Unlocker] Keyboard shortcuts (Ctrl+A/C/V/X/Z etc.) restored.', 'color: #1D9E75;');
+})();</div>
+    <button class="copy-btn" onclick="copyCode('code-keys', this)">Copy</button>
+  </div>
+</div>
+
+<div id="panel-ctx" class="panel">
+  <div class="label">Paste into browser console (F12 → Console)</div>
+  <div class="code-wrap">
+    <div class="code-block" id="code-ctx">(function() {
+  document.addEventListener('contextmenu', ev => ev.stopImmediatePropagation(), true);
+  document.oncontextmenu = null;
+  if (document.body) document.body.oncontextmenu = null;
+  console.log('%c[Unlocker] Right-click restored.', 'color: #1D9E75;');
+})();</div>
+    <button class="copy-btn" onclick="copyCode('code-ctx', this)">Copy</button>
+  </div>
+</div>
+
+<script>
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+}
+function copyCode(id, btn) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+  });
+}
+</script>
+</body>
+</html>
